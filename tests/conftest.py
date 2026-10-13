@@ -70,6 +70,20 @@ def pytest_unconfigure(config):
             process.kill()
 
 
+def _client_auth():
+    user = os.environ.get("BMC_USER")
+    password = os.environ.get("BMC_PASSWORD")
+    return (user, password) if user is not None else None
+
+
+def _verify_tls():
+    return os.environ.get("BMC_VERIFY_TLS", "true").lower() in ("1", "true", "yes")
+
+
+def _make_client(url):
+    return RedfishClient(url, auth=_client_auth(), verify=_verify_tls())
+
+
 def _short_id(path):
     return path.rstrip("/").rsplit("/", 1)[-1]
 
@@ -85,11 +99,13 @@ def pytest_generate_tests(metafunc):
         "temperature",
         "fan",
         "voltage",
+        "power_control",
+        "power_supply",
     }
     if not (names & interesting):
         return
 
-    client = RedfishClient(_base_url())
+    client = _make_client(_base_url())
 
     if "system_path" in names:
         paths = client.members("/redfish/v1/Systems")
@@ -139,6 +155,25 @@ def pytest_generate_tests(metafunc):
             ids=[v.get("Name", str(i)) for i, v in enumerate(voltages)],
         )
 
+    if "power_control" in names or "power_supply" in names:
+        controls, supplies = [], []
+        for chassis in client.members("/redfish/v1/Chassis"):
+            power = client.get(f"{chassis}/Power")
+            controls += power.get("PowerControl", [])
+            supplies += power.get("PowerSupplies", [])
+        if "power_control" in names:
+            metafunc.parametrize(
+                "power_control",
+                controls,
+                ids=[c.get("Name", str(i)) for i, c in enumerate(controls)],
+            )
+        if "power_supply" in names:
+            metafunc.parametrize(
+                "power_supply",
+                supplies,
+                ids=[s.get("Name", str(i)) for i, s in enumerate(supplies)],
+            )
+
 
 @pytest.fixture(scope="session")
 def bmc_url():
@@ -147,4 +182,4 @@ def bmc_url():
 
 @pytest.fixture(scope="session")
 def client(bmc_url):
-    return RedfishClient(bmc_url)
+    return _make_client(bmc_url)

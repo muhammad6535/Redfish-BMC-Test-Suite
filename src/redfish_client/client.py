@@ -7,10 +7,12 @@ class RedfishClientError(Exception):
 
 
 class RedfishClient:
-    def __init__(self, base_url, timeout=10, session=None):
+    def __init__(self, base_url, timeout=10, auth=None, verify=True, session=None):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.session = session or requests.Session()
+        self.session.auth = auth
+        self.session.verify = verify
 
     def _url(self, path):
         if path.startswith("http"):

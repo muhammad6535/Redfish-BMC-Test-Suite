@@ -13,11 +13,26 @@ def test_missing_resource_raises_404(client):
     assert "404" in str(exc.value)
 
 
+@pytest.mark.xfail(
+    reason="mock accepts invalid values (returns 204); a real BMC should return 4xx "
+    "(see docs/recon.md)",
+    strict=False,
+)
 def test_invalid_value_patch(client, system_path):
-    pytest.skip(
-        "Mock accepts invalid values (returns 204); a real BMC should return 4xx "
-        "(see docs/recon.md)"
+    """PATCH PowerState with an unsupported value. XPASSes on a real BMC.
+
+    The mock persists the invalid value, so a valid state is restored afterwards to
+    keep the suite order-independent.
+    """
+    response = requests.patch(
+        f"{client.base_url}{system_path}",
+        json={"PowerState": "Banana"},
+        timeout=5,
     )
+    try:
+        assert 400 <= response.status_code < 500
+    finally:
+        client.patch(system_path, {"PowerState": "On"})
 
 
 def test_malformed_json_body(client, system_path):

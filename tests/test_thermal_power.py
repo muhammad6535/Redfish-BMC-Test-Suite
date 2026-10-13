@@ -32,3 +32,15 @@ def test_voltage_within_critical_range(voltage):
         minimum=voltage.get("LowerThresholdCritical"),
         maximum=voltage.get("UpperThresholdCritical"),
     )
+
+
+def test_power_control_reports_consumption(power_control):
+    name = power_control.get("Name", "power control")
+    assert power_control.get("PowerConsumedWatts", 0) >= 0, name
+
+
+def test_power_supply_health_is_known(power_supply):
+    health = power_supply.get("Status", {}).get("Health")
+    assert health in {"OK", "Warning", "Critical"}, (
+        f"unexpected power supply health: {health!r}"
+    )

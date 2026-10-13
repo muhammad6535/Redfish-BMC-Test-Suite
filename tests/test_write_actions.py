@@ -18,5 +18,9 @@ def test_asset_tag_roundtrip(client, system_path):
 
 
 def test_reset_action_accepted(client, system_path):
-    target = client.get(system_path)["Actions"]["#ComputerSystem.Reset"]["target"]
+    reset = client.get(system_path)["Actions"]["#ComputerSystem.Reset"]
+    target = reset["target"]
+    allowed = reset.get("ResetType@Redfish.AllowableValues")
+    if allowed:
+        assert "On" in allowed
     client.post(target, {"ResetType": "On"})
