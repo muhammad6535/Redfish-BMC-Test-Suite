@@ -1,6 +1,6 @@
 # Redfish BMC Test Suite
 
-[![CI](https://github.com/muhammad6535/redfish-bmc-test-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/muhammad6535/redfish-bmc-test-suite/actions/workflows/ci.yml)
+[![CI](https://github.com/muhammad6535/Redfish-BMC-Test-Suite/actions/workflows/ci.yml/badge.svg)](https://github.com/muhammad6535/Redfish-BMC-Test-Suite/actions/workflows/ci.yml)
 
 Automated Pytest suite that validates a server BMC through the DMTF Redfish API.
 
@@ -56,13 +56,18 @@ Run one category with markers: `pytest -m smoke`, `pytest -m network`, etc.
 
 ## Sample report
 
-`pytest` writes an HTML report to `reports/report.html`.
+`pytest` writes an HTML report to `reports/report.html`. A copy from a local run (47 passed,
+5 skipped - the skips are documented mock limitations):
+
+![Sample pytest report](docs/report-screenshot.png)
+
+CI uploads the same report as a downloadable artifact on every run.
 
 ## Repository layout
 
 ```
 src/redfish_client/   client.py, validators.py
 tests/                conftest.py, test_*.py, unit/
-docs/                 test_plan.md, bug_report_template.md, recon.md
+docs/                 test_plan.md, bug_report_template.md, recon.md, report-screenshot.png
 .github/workflows/    ci.yml
 ```
