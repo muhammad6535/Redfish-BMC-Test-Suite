@@ -36,7 +36,8 @@ def test_voltage_within_critical_range(voltage):
 
 def test_power_control_reports_consumption(power_control):
     name = power_control.get("Name", "power control")
-    assert power_control.get("PowerConsumedWatts", 0) >= 0, name
+    consumed = power_control.get("PowerConsumedWatts")
+    assert isinstance(consumed, (int, float)) and consumed >= 0, name
 
 
 def test_power_supply_health_is_known(power_supply):

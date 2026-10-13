@@ -1,5 +1,6 @@
 """Shared fixtures: start the mock BMC and provide a Redfish client."""
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -15,7 +16,6 @@ MOCK_DIR = os.environ.get(
     os.path.abspath(os.path.join(REPO_ROOT, os.pardir, "Redfish-Mockup-Server")),
 )
 MOCK_SCRIPT = os.path.join(MOCK_DIR, "redfishMockupServer.py")
-DEFAULT_URL = "http://127.0.0.1:8000"
 STARTUP_TIMEOUT = 30
 
 _server = {"process": None, "url": None}
@@ -33,6 +33,13 @@ def _wait_until_ready(url, timeout):
     return False
 
 
+def _free_port():
+    """Return an available TCP port to run the mock on."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
 def _base_url():
     """Return the BMC base URL, starting the mock server on first use."""
     if _server["url"]:
@@ -46,18 +53,20 @@ def _base_url():
             f"Mock server not found at {MOCK_SCRIPT}. "
             "Clone DMTF/Redfish-Mockup-Server, or set BMC_URL / MOCK_SERVER_DIR."
         )
+    port = _free_port()
+    url = f"http://127.0.0.1:{port}"
     process = subprocess.Popen(
-        [sys.executable, MOCK_SCRIPT],
+        [sys.executable, MOCK_SCRIPT, "-H", "127.0.0.1", "-p", str(port)],
         cwd=MOCK_DIR,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    if not _wait_until_ready(DEFAULT_URL, STARTUP_TIMEOUT):
+    if not _wait_until_ready(url, STARTUP_TIMEOUT):
         process.terminate()
-        pytest.exit(f"Mock BMC not ready at {DEFAULT_URL} within {STARTUP_TIMEOUT}s")
+        pytest.exit(f"Mock BMC not ready at {url} within {STARTUP_TIMEOUT}s")
     _server["process"] = process
-    _server["url"] = DEFAULT_URL
-    return _server["url"]
+    _server["url"] = url
+    return url
 
 
 def pytest_unconfigure(config):

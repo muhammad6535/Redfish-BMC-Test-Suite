@@ -1,10 +1,11 @@
 """Negative and edge-case tests: bad input and clear failures."""
 import pytest
-import requests
 
 from redfish_client.client import RedfishClient, RedfishClientError
 
 pytestmark = pytest.mark.negative
+
+POWER_STATES = {"On", "Off", "PoweringOn", "PoweringOff"}
 
 
 def test_missing_resource_raises_404(client):
@@ -21,27 +22,29 @@ def test_missing_resource_raises_404(client):
 def test_invalid_value_patch(client, system_path):
     """PATCH PowerState with an unsupported value. XPASSes on a real BMC.
 
-    The mock persists the invalid value, so a valid state is restored afterwards to
-    keep the suite order-independent.
+    Sent through client.session so the login and TLS settings apply. If the invalid
+    value sticks (as the mock does), the saved state is restored afterwards.
     """
-    response = requests.patch(
-        f"{client.base_url}{system_path}",
-        json={"PowerState": "Banana"},
-        timeout=5,
+    url = f"{client.base_url}{system_path}"
+    original = client.get(system_path).get("PowerState")
+    response = client.session.patch(
+        url, json={"PowerState": "Banana"}, timeout=client.timeout
     )
     try:
         assert 400 <= response.status_code < 500
     finally:
-        client.patch(system_path, {"PowerState": "On"})
+        current = client.get(system_path).get("PowerState")
+        if current not in POWER_STATES:
+            restore = original if original in POWER_STATES else "On"
+            client.patch(system_path, {"PowerState": restore})
 
 
 def test_malformed_json_body(client, system_path):
-    url = f"{client.base_url}{system_path}"
-    response = requests.patch(
-        url,
+    response = client.session.patch(
+        f"{client.base_url}{system_path}",
         data="{ this is not json",
         headers={"Content-Type": "application/json"},
-        timeout=5,
+        timeout=client.timeout,
     )
     assert response.status_code == 400
 

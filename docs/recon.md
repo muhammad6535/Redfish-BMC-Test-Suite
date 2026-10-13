@@ -87,5 +87,8 @@ Resource IDs are **not** hard-coded in tests: they are discovered from the colle
 python redfishMockupServer.py -H 127.0.0.1 -p 8000
 ```
 
+The test suite itself starts the mock on a **random free port** (`-p` picked at runtime),
+so a stale or dirty server left on port 8000 can never be mistaken for a fresh one.
+
 The mock supports PATCH/POST "to a limited extent" (its README). Findings above reflect
 the `public-rackmount1` mockup shipped in the cloned revision.
